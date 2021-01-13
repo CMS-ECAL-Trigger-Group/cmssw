@@ -45,6 +45,7 @@
 #include "CondFormats/EcalObjects/interface/EcalTPGLutIdMap.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGPedestals.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGWeightIdMap.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGOddWeightIdMap.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGSlidingWindow.h"
 #include "CondFormats/EcalObjects/interface/EcalMappingElectronics.h"
 #include "CondFormats/EcalObjects/interface/EcalFunctionParameters.h"
@@ -57,6 +58,7 @@
 #include "CondFormats/EcalObjects/interface/EcalTPGFineGrainEBGroup.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGLutGroup.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGWeightGroup.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGOddWeightGroup.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGPhysicsConst.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGCrystalStatus.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGCrystalStatusCode.h"
@@ -64,6 +66,9 @@
 #include "CondFormats/EcalObjects/interface/EcalTPGSpike.h"
 #include "CondFormats/EcalObjects/interface/EcalSRSettings.h"
 #include "CondFormats/EcalObjects/interface/EcalSimPulseShape.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGOddWeightGroup.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGOddWeightIdMap.h"
+
 #include <cstdint>
 
 namespace CondFormats_EcalObjects {
@@ -186,6 +191,7 @@ namespace CondFormats_EcalObjects {
     EcalTPGLutGroup lutgroup;
 
     EcalTPGWeightGroup wgroup;
+    EcalTPGOddWeightGroup oddwgroup;
 
     EcalTPGPhysicsConst::Item foo1;
     std::map<uint32_t, EcalTPGPhysicsConst::Item> phConst;
