@@ -42,15 +42,16 @@ void EcalFenixOddAmplitudeFilter::process(std::vector<int> &addout,
     buffer_[i] = 0;  // FIXME: 5
     fgvbBuffer_[i] = 0;
   }
-
   // test end
 
   for (unsigned int i = 0; i < addout.size(); i++) {
+
+    // Only save TP info for Clock i >= 4 (from 0-9) because first 5 digis required to produce first ET value 
     if (i>=4){
-      if(TPinfoPrintout_) std::cout<<i<<std::dec;//by  RK // need to add the boolean
+      if(TPinfoPrintout_) std::cout<<i<<std::dec; 
     } 
     setInput(addout[i], fgvbIn[i]);
-    process();
+    process(); // This should probably be renamed to something meaningful and not the same as the very function it's being called in...
     output[i] = processedOutput_;
     fgvbOut[i] = processedFgvbOutput_;
   }
@@ -79,7 +80,6 @@ void EcalFenixOddAmplitudeFilter::process() {
   if(TPinfoPrintout_) std::cout<<" "<<stripid_;
   for (int i = 0; i < 5; i++) {
     output += (weights_[i] * buffer_[i]) >> shift_;
-    // if(TPinfoPrintout_) std::cout<<" "<<output<<std::dec; // Removing this because the information can be deduced from the 5 digis and 5 weights 
     if ((fgvbBuffer_[i] == 1 && i == 3) || fgvbInt == 1) {
       fgvbInt = 1;
     }
@@ -93,9 +93,6 @@ void EcalFenixOddAmplitudeFilter::process() {
       std::cout<<" "<<weights_[i]/64.0<<std::dec;}
     for (int i = 0; i < 5; i++) {
       std::cout<<" "<<buffer_[i]<<std::dec;} // Digis 
-    // for (int i = 0; i < 5; i++) {
-      // std::cout<<" "<<(weights_[i] * buffer_[i])<<std::dec; // Removing this because the information can be deduced from the 5 digis and 5 weights    
-    // }
     std::cout << " ODD";
     std::cout<<std::endl;
       // -- by RK 

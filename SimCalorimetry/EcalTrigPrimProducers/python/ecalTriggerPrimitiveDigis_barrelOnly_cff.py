@@ -1,4 +1,5 @@
 import FWCore.ParameterSet.Config as cms
+print "Ecal debug: in barrelOnly"
 
 # Trigger Primitive Producer
 from SimCalorimetry.EcalTrigPrimProducers.ecalTriggerPrimitiveDigis_cfi import *

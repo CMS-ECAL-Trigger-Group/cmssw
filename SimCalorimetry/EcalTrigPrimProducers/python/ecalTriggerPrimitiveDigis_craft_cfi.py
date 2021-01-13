@@ -1,4 +1,5 @@
 import FWCore.ParameterSet.Config as cms
+print"craft in"
 
 #
 # attention: default is changed to work on unsuppressed digis!! ##############
@@ -12,6 +13,7 @@ simEcalTriggerPrimitiveDigis = cms.EDProducer("EcalTrigPrimProducer",
     TcpOutput = cms.bool(False),
     Debug = cms.bool(False),
     Label = cms.string('simEcalUnsuppressedDigis')
+
 )
 
 

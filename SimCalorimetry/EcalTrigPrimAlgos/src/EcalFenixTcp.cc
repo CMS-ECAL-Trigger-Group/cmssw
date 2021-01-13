@@ -188,7 +188,7 @@ void EcalFenixTcp::process_part2_barrel(std::vector<std::vector<int>> &bypasslin
     std::cout << "output of TCP formatter Barrel is a vector of size: " << std::dec << tcp_out.size() << std::endl;
     std::cout << "value : " << std::endl;
     for (unsigned int i = 0; i < tcp_out.size(); i++) {
-      std::cout << " " << i << " " << std::dec << tcp_out[i];
+      std::cout << " " << i << " " << std::dec << tcp_out[i] << std::endl;
     }
     std::cout << std::endl;
   }

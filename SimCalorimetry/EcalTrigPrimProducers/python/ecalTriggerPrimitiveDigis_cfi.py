@@ -1,5 +1,4 @@
 import FWCore.ParameterSet.Config as cms
-
 #
 # attention: default is changed to work on unsuppressed digis!! ##############
 #
@@ -12,6 +11,8 @@ simEcalTriggerPrimitiveDigis = cms.EDProducer("EcalTrigPrimProducer",
     TcpOutput = cms.bool(False),
     Debug = cms.bool(False),
     Label = cms.string('simEcalUnsuppressedDigis')
+    # oddWeightsTxtFile = cms.string('test.txt')
+    # # oddWeightsTxtFile = cms.string('')
 )
 
 

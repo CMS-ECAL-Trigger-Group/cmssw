@@ -188,6 +188,7 @@ void EcalTrigPrimFunctionalAlgo::run_part2(
 
   estrip_->getFGVB()->setbadStripMissing(false);
 
+  // Is there a reason this is implemented in the header rather than cc file?
   for (int itow = 0; itow < nrTowers_; ++itow) {
     int index = hitTowers_[itow].first;
     const EcalTrigTowerDetId &thisTower = hitTowers_[itow].second;
