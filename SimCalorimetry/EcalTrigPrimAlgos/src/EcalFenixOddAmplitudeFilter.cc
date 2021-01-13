@@ -2,15 +2,17 @@
 #include "CondFormats/EcalObjects/interface/EcalTPGWeightGroup.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGWeightIdMap.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
-#include <SimCalorimetry/EcalTrigPrimAlgos/interface/EcalFenixAmplitudeFilter.h>
+#include <SimCalorimetry/EcalTrigPrimAlgos/interface/EcalFenixOddAmplitudeFilter.h>
 #include <iostream>
+#include <string>
+#include <fstream>
 
-EcalFenixAmplitudeFilter::EcalFenixAmplitudeFilter(bool TPinfoPrintout) : inputsAlreadyIn_(0), stripid_{0}, shift_(6), TPinfoPrintout_(TPinfoPrintout) {}
+EcalFenixOddAmplitudeFilter::EcalFenixOddAmplitudeFilter(bool TPinfoPrintout, std::string oddWeightsTxtFile) : inputsAlreadyIn_(0), stripid_{0}, shift_(6), TPinfoPrintout_(TPinfoPrintout), oddWeightsTxtFile_(oddWeightsTxtFile) {}
 
 
-EcalFenixAmplitudeFilter::~EcalFenixAmplitudeFilter() {}
+EcalFenixOddAmplitudeFilter::~EcalFenixOddAmplitudeFilter() {}
 
-int EcalFenixAmplitudeFilter::setInput(int input, int fgvb) {
+int EcalFenixOddAmplitudeFilter::setInput(int input, int fgvb) {
   if (input > 0X3FFFF) {
     std::cout << "ERROR IN INPUT OF AMPLITUDE FILTER" << std::endl;
     return -1;
@@ -30,7 +32,7 @@ int EcalFenixAmplitudeFilter::setInput(int input, int fgvb) {
   return 1;
 }
 
-void EcalFenixAmplitudeFilter::process(std::vector<int> &addout,
+void EcalFenixOddAmplitudeFilter::process(std::vector<int> &addout,
                                        std::vector<int> &output,
                                        std::vector<int> &fgvbIn,
                                        std::vector<int> &fgvbOut) {
@@ -65,7 +67,7 @@ void EcalFenixAmplitudeFilter::process(std::vector<int> &addout,
   return;
 }
 
-void EcalFenixAmplitudeFilter::process() {
+void EcalFenixOddAmplitudeFilter::process() {
   // UB FIXME: 5
   processedOutput_ = 0;
   processedFgvbOutput_ = 0;
@@ -90,11 +92,11 @@ void EcalFenixAmplitudeFilter::process() {
     for (int i = 0; i < 5; i++) {
       std::cout<<" "<<weights_[i]/64.0<<std::dec;}
     for (int i = 0; i < 5; i++) {
-      std::cout<<" "<<buffer_[i]<<std::dec;} // digis 
+      std::cout<<" "<<buffer_[i]<<std::dec;} // Digis 
     // for (int i = 0; i < 5; i++) {
-      // std::cout<<" "<<(weights_[i] * buffer_[i])<<std::dec; // Removing this because the information can be deduced from the 5 digis and 5 weights   
+      // std::cout<<" "<<(weights_[i] * buffer_[i])<<std::dec; // Removing this because the information can be deduced from the 5 digis and 5 weights    
     // }
-    std::cout << " EVEN";
+    std::cout << " ODD";
     std::cout<<std::endl;
       // -- by RK 
   }
@@ -108,10 +110,15 @@ void EcalFenixAmplitudeFilter::process() {
   //std::cout<<" output after full processing: "<<output<<std::endl; // by RK 
 }
 
-void EcalFenixAmplitudeFilter::setParameters(uint32_t raw,
+void EcalFenixOddAmplitudeFilter::setParameters(uint32_t raw,
                                              const EcalTPGWeightIdMap *ecaltpgWeightMap,
                                              const EcalTPGWeightGroup *ecaltpgWeightGroup) {
-  stripid_ = raw;    // by RK                                            
+  stripid_ = raw;    // by RK  
+
+  // Want to set Odd weights here 
+  // Can see from header files that even amplitude weights come from CondFormats --> conditions database?   
+  // For initial testing will load odd weights from text file 
+
   uint32_t params_[5];
   const EcalTPGGroups::EcalTPGGroupsMap &groupmap = ecaltpgWeightGroup->getMap();
   EcalTPGGroups::EcalTPGGroupsMapItr it = groupmap.find(raw);
@@ -125,15 +132,19 @@ void EcalFenixAmplitudeFilter::setParameters(uint32_t raw,
     // bits maybe this should go into the getValue method??
     // std::cout << "peak flag settings" << std::endl;
 
-    for (int i = 0; i < 5; ++i) {
-      weights_[i] = (params_[i] & 0x40) ? (int)(params_[i] | 0xffffffc0) : (int)(params_[i]);
+    // for (int i = 0; i < 5; ++i) {
+    //   weights_[i] = (params_[i] & 0x40) ? (int)(params_[i] | 0xffffffc0) : (int)(params_[i]);
 
-      // Construct the peakFlag for sFGVB processing
-      // peakFlag_[i] = ((params_[i] & 0x80) > 0x0) ? 1 : 0;
-      // std::cout << " " << params_[i] << std::endl;
-      // std::cout << " " << peakFlag_[i] << std::endl;
-    }
-    // std::cout << std::endl;
+    //   // Construct the peakFlag for sFGVB processing
+    //   // peakFlag_[i] = ((params_[i] & 0x80) > 0x0) ? 1 : 0;
+    //   // std::cout << " " << params_[i] << std::endl;
+    //   // std::cout << " " << peakFlag_[i] << std::endl;
+    // }
+
+    // Setting Odd Weights via input text file here 
+    std::fstream oddWeightsLine(oddWeightsTxtFile_, std::ios_base::in);
+    oddWeightsLine >> weights_[0] >> weights_[1] >> weights_[2] >> weights_[3] >> weights_[4];  
+
   } else
     edm::LogWarning("EcalTPG") << " could not find EcalTPGGroupsMap entry for " << raw;
 }

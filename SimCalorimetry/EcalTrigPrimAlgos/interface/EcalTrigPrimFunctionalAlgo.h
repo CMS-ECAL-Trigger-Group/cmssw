@@ -7,7 +7,7 @@
  * Structure is as close as possible to electronics
  *
  *
- * \author Ursula Berthon, Stephanie Baffioni,  LLR Palaiseau
+ * \author Ursula Berthon, Stephanie Baffioni, LLR Palaiseau
  *
  * \version   1st Version may 2006
  * \version   2nd Version jul 2006
@@ -33,6 +33,7 @@
 
 #include <map>
 #include <utility>
+#include <string>
 
 /** Main Algo for Ecal trigger primitives. */
 
@@ -47,7 +48,7 @@ class EcalElectronicsMapping;
 class EcalTrigPrimFunctionalAlgo {
 public:
   explicit EcalTrigPrimFunctionalAlgo(
-      const edm::EventSetup &setup, int binofmax, bool tcpFormat, bool barrelOnly, bool debug, bool famos);
+      const edm::EventSetup &setup, int binofmax, bool tcpFormat, bool barrelOnly, bool debug, bool famos, std::string oddWeightsTxtFile, bool TPinfoPrintout, std::string TPmode);
 
   virtual ~EcalTrigPrimFunctionalAlgo();
 
@@ -122,7 +123,7 @@ private:
     return ind;
   }
 
-  EcalFenixStrip *estrip_;
+  EcalFenixStrip *estrip_; // With way things are currently setup, need another EcalFenixStrip instance for odd filter or need to configure two "outs"
   EcalFenixTcp *etcp_;
 
   edm::ESHandle<EcalTrigTowerConstituentsMap> eTTmap_;
@@ -138,6 +139,9 @@ private:
   bool barrelOnly_;
   bool debug_;
   bool famos_;
+  std::string oddWeightsTxtFile_; 
+  bool TPinfoPrintout_; 
+  std::string TPmode_;
 
   static const unsigned int nrSamples_;        // nr samples to write, should not be changed since by
                                                // convention the size means that it is coming from simulation
@@ -150,6 +154,7 @@ private:
 
   // data structures kept during the whole run
   std::vector<std::vector<int>> striptp_;
+  // std::vector<std::vector<int>> odd_striptp_; // duplicate data path for odd filter 
   std::vector<std::vector<std::pair<int, std::vector<EBDataFrame>>>> towerMapEB_;
   std::vector<std::vector<std::pair<int, std::vector<EEDataFrame>>>> towerMapEE_;
   std::vector<std::pair<int, EcalTrigTowerDetId>> hitTowers_;
@@ -194,7 +199,9 @@ void EcalTrigPrimFunctionalAlgo::run_part2(
                                                             // size; nr of crystals/strip
 
       if ((towerMap[index])[i].first > 0) {
+        // estrip_->process(setup, df, (towerMap[index])[i].first, striptp_[nstr++]);
         estrip_->process(setup, df, (towerMap[index])[i].first, striptp_[nstr++]);
+        // estrip_->process(setup, df, (towerMap[index])[i].first, odd_striptp_[nstr++],1); // duplicate for odd filter data path. 
       }
     }  // loop over strips in one tower
 
@@ -335,6 +342,13 @@ void EcalTrigPrimFunctionalAlgo::initStructures(std::vector<std::vector<std::pai
   striptp_.resize(nbMaxStrips_);
   for (int i = 0; i < nbMaxStrips_; ++i)
     striptp_[i] = vecint;
+
+  // // duplicate for odd filter 
+  // std::vector<int> vecint(maxNrSamples_);
+  // odd_striptp_.resize(nbMaxStrips_);
+  // for (int i = 0; i < nbMaxStrips_; ++i)
+  //   odd_striptp_[i] = vecint;  
+  
 }
 
 #endif

@@ -6,6 +6,7 @@
 #include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
 
 #include <DataFormats/EcalDigi/interface/EcalTriggerPrimitiveSample.h>
+#include <string>
 
 //-------------------------------------------------------------------------------------
 EcalFenixStrip::EcalFenixStrip(const edm::EventSetup &setup,
@@ -13,17 +14,23 @@ EcalFenixStrip::EcalFenixStrip(const edm::EventSetup &setup,
                                bool debug,
                                bool famos,
                                int maxNrSamples,
-                               int nbMaxXtals)
-    : theMapping_(theMapping), debug_(debug), famos_(famos), nbMaxXtals_(nbMaxXtals) {
+                               int nbMaxXtals,
+                               std::string oddWeightsTxtFile,
+                               bool TPinfoPrintout,
+                               std::string TPmode)
+    : theMapping_(theMapping), debug_(debug), famos_(famos), nbMaxXtals_(nbMaxXtals), TPmode_(TPmode) {
   linearizer_.resize(nbMaxXtals_);
   for (int i = 0; i < nbMaxXtals_; i++)
     linearizer_[i] = new EcalFenixLinearizer(famos_);
   adder_ = new EcalFenixEtStrip();
-  amplitude_filter_ = new EcalFenixAmplitudeFilter();
+  amplitude_filter_ = new EcalFenixAmplitudeFilter(TPinfoPrintout);
+  oddAmplitude_filter_ = new EcalFenixOddAmplitudeFilter(TPinfoPrintout,oddWeightsTxtFile); 
   peak_finder_ = new EcalFenixPeakFinder();
   fenixFormatterEB_ = new EcalFenixStripFormatEB();
   fenixFormatterEE_ = new EcalFenixStripFormatEE();
   fgvbEE_ = new EcalFenixStripFgvbEE();
+  mydebug_=false;  // DP ADDED
+  a = 10;
 
   // prepare data storage for all events
   std::vector<int> v;
@@ -37,6 +44,17 @@ EcalFenixStrip::EcalFenixStrip(const edm::EventSetup &setup,
   format_out_.resize(maxNrSamples);
   fgvb_out_.resize(maxNrSamples);
   fgvb_out_temp_.resize(maxNrSamples);
+
+  // prepare data storage for odd filter 
+  odd_lin_out_.resize(nbMaxXtals_);
+  for (int i = 0; i < 5; i++)
+    odd_lin_out_[i] = v;  
+  odd_add_out_.resize(maxNrSamples);
+  odd_filt_out_.resize(maxNrSamples); 
+  odd_peak_out_.resize(maxNrSamples);
+  // odd_format_out_.resize(maxNrSamples);
+  odd_fgvb_out_.resize(maxNrSamples);
+  odd_fgvb_out_temp_.resize(maxNrSamples);   
 }
 
 //-------------------------------------------------------------------------------------
@@ -45,6 +63,7 @@ EcalFenixStrip::~EcalFenixStrip() {
     delete linearizer_[i];
   delete adder_;
   delete amplitude_filter_;
+  delete oddAmplitude_filter_; 
   delete peak_finder_;
   delete fenixFormatterEB_;
   delete fenixFormatterEE_;
@@ -61,16 +80,21 @@ void EcalFenixStrip::process_part2_barrel(uint32_t stripid,
 
   // call formatter
   this->getFormatterEB()->setParameters(stripid, ecaltpgSlidW);
+
   this->getFormatterEB()->process(fgvb_out_, peak_out_, filt_out_, format_out_);
+
+  // Duplicate for Odd filter 
+  // this->getFormatterEB()->process(odd_fgvb_out_, odd_peak_out_, odd_filt_out_, odd_format_out_);
+
   // this is a test:
-  if (debug_) {
-    std::cout << "output of formatter is a vector of size: " << format_out_.size() << std::endl;
-    std::cout << "value : " << std::endl;
-    for (unsigned int i = 0; i < format_out_.size(); i++) {
-      std::cout << " " << format_out_[i];
-    }
-    std::cout << std::endl;
-  }
+  // if (debug_) {
+  //   std::cout << "output of formatter is a vector of size: " << format_out_.size() << std::endl;
+  //   std::cout << "value : " << std::endl;
+  //   for (unsigned int i = 0; i < format_out_.size(); i++) {
+  //     std::cout << " " << format_out_[i];
+  //   }
+  //   std::cout << std::endl;
+  // }
   return;
 }
 //-------------------------------------------------------------------------------------
@@ -84,18 +108,22 @@ void EcalFenixStrip::process_part2_endcap(uint32_t stripid,
 
   // call formatter
   this->getFormatterEE()->setParameters(stripid, ecaltpgSlidW, ecaltpgStripStatus);
-
   this->getFormatterEE()->process(fgvb_out_, peak_out_, filt_out_, format_out_);
 
+  // Duplicate for odd filter 
+  // this->getFormatterEE()->process(odd_fgvb_out_, odd_peak_out_, odd_filt_out_, odd_format_out_);
+
   // this is a test:
-  if (debug_) {
-    std::cout << "output of formatter is a vector of size: " << format_out_.size() << std::endl;
-    std::cout << "value : " << std::endl;
-    for (unsigned int i = 0; i < format_out_.size(); i++) {
-      std::cout << " " << std::dec << format_out_[i];
-    }
-    std::cout << std::endl;
-  }
+  // if (debug_) {
+  //   std::cout << "output of formatter is a vector of size: " << format_out_.size() << std::endl;
+  //   std::cout << "value = " << std::endl;  // DP FORMATTED
+  //   for (unsigned int i = 0; i < format_out_.size(); i++) {
+  //     std::cout << " " << std::dec << format_out_[i] << std::endl;   // DP FORMATTED
+  //     if (format_out_[i]>100) mydebug_=true; // DP ADDED
+  //   }
+  //   std::cout << std::endl;
+  //   if (mydebug_) std::cout << "MYDEBUG=TRUE " <<a<< std::endl;  // DP ADDED
+  // }
 
   return;
 }
