@@ -23,7 +23,7 @@ EcalFenixStrip::EcalFenixStrip(const edm::EventSetup &setup,
     linearizer_[i] = new EcalFenixLinearizer(famos_);
   adder_ = new EcalFenixEtStrip();
   amplitude_filter_ = new EcalFenixAmplitudeFilter(TPinfoPrintout);
-  //oddAmplitude_filter_ = new EcalFenixOddAmplitudeFilter(TPinfoPrintout,oddWeightsTxtFile); 
+  oddAmplitude_filter_ = new EcalFenixOddAmplitudeFilter(TPinfoPrintout); 
   peak_finder_ = new EcalFenixPeakFinder();
   fenixFormatterEB_ = new EcalFenixStripFormatEB();
   fenixFormatterEE_ = new EcalFenixStripFormatEE();
@@ -104,6 +104,8 @@ void EcalFenixStrip::process(const edm::EventSetup &setup, std::vector<EBDataFra
                 ecaltpLin_,
                 ecaltpgWeightMap_,
                 ecaltpgWeightGroup_,
+                ecaltpgOddWeightMap_,
+                ecaltpgOddWeightGroup_,
                 ecaltpgBadX_);  // templated part
   process_part2_barrel(stripid, ecaltpgSlidW_,
                         ecaltpgFgStripEE_);  // part different for barrel/endcap
@@ -132,6 +134,8 @@ void EcalFenixStrip::process(const edm::EventSetup &setup, std::vector<EEDataFra
                 ecaltpLin_,
                 ecaltpgWeightMap_,
                 ecaltpgWeightGroup_,
+                ecaltpgOddWeightMap_,
+                ecaltpgOddWeightGroup_,
                 ecaltpgBadX_);  // templated part
   process_part2_endcap(stripid, ecaltpgSlidW_, ecaltpgFgStripEE_, ecaltpgStripStatus_);
   out = format_out_; // FIXME: timing
@@ -141,7 +145,7 @@ void EcalFenixStrip::process(const edm::EventSetup &setup, std::vector<EEDataFra
 }
 
 template <class T>
-void  EcalFenixStrip::process_part1(int identif,
+void EcalFenixStrip::process_part1(int identif,
                     std::vector<T> &df,
                     int nrXtals,
                     uint32_t stripid,
@@ -149,6 +153,8 @@ void  EcalFenixStrip::process_part1(int identif,
                     const EcalTPGLinearizationConst *ecaltpLin,
                     const EcalTPGWeightIdMap *ecaltpgWeightMap,
                     const EcalTPGWeightGroup *ecaltpgWeightGroup,
+                    const EcalTPGOddWeightIdMap *ecaltpgOddWeightMap,
+                    const EcalTPGOddWeightGroup *ecaltpgOddWeightGroup,
                     const EcalTPGCrystalStatus *ecaltpBadX) {
   if (debug_)
     std::cout << "\n\nEcalFenixStrip input is a vector of size: " << nrXtals << std::endl;
@@ -279,7 +285,7 @@ void  EcalFenixStrip::process_part1(int identif,
       this->getAdder()->process(odd_lin_out_, nrXtals, odd_add_out_);  // for odd filter input 
 
       // Call odd amplitude filter 
-      this->getOddFilter()->setParameters(stripid, ecaltpgWeightMap, ecaltpgWeightGroup);
+      this->getOddFilter()->setParameters(stripid, ecaltpgOddWeightMap, ecaltpgOddWeightGroup);
       this->getOddFilter()->process(add_out_, odd_filt_out_, odd_fgvb_out_temp_, odd_fgvb_out_);      
       // this->getOddFilter()->process(odd_add_out_, odd_filt_out_, odd_fgvb_out_temp_, odd_fgvb_out_);    
 

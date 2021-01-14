@@ -27,7 +27,6 @@ private:
   int shift_;
   bool debug_; 
   bool TPinfoPrintout_; 
-  std::string oddWeightsTxtFile_; // When including odd weights via a text file 
   int setInput(int input, int fgvb);
   void process();
 
@@ -36,15 +35,15 @@ private:
 
 public:
   EcalFenixOddAmplitudeFilter();
-  EcalFenixOddAmplitudeFilter(bool TPinfoPrintout, std::string oddWeightsTxtFile);
+  EcalFenixOddAmplitudeFilter(bool TPinfoPrintout);
   virtual ~EcalFenixOddAmplitudeFilter();
   virtual void process(std::vector<int> &addout,
                        std::vector<int> &output,
                        std::vector<int> &fgvbIn,
                        std::vector<int> &fgvbOut);
   void setParameters(uint32_t raw,
-                     const EcalTPGWeightIdMap *ecaltpgWeightMap,
-                     const EcalTPGWeightGroup *ecaltpgWeightGroup);
+                     const EcalTPGOddWeightIdMap *ecaltpgOddWeightMap,
+                     const EcalTPGOddWeightGroup *ecaltpgOddWeightGroup);
 };
 
 #endif

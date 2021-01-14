@@ -139,6 +139,8 @@ public:
                     const EcalTPGLinearizationConst *ecaltpLin,
                     const EcalTPGWeightIdMap *ecaltpgWeightMap,
                     const EcalTPGWeightGroup *ecaltpgWeightGroup,
+                    const EcalTPGOddWeightIdMap *ecaltpgOddWeightMap,
+                    const EcalTPGOddWeightGroup *ecaltpgOddWeightGroup,
                     const EcalTPGCrystalStatus *ecaltpBadX);
 
   void process_part2_barrel(uint32_t stripid,

@@ -1,13 +1,14 @@
 #include "CondFormats/EcalObjects/interface/EcalTPGGroups.h"
-#include "CondFormats/EcalObjects/interface/EcalTPGWeightGroup.h"
-#include "CondFormats/EcalObjects/interface/EcalTPGWeightIdMap.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGOddWeightGroup.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGOddWeightIdMap.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include <SimCalorimetry/EcalTrigPrimAlgos/interface/EcalFenixOddAmplitudeFilter.h>
 #include <iostream>
 #include <string>
 #include <fstream>
 
-EcalFenixOddAmplitudeFilter::EcalFenixOddAmplitudeFilter(bool TPinfoPrintout, std::string oddWeightsTxtFile) : inputsAlreadyIn_(0), stripid_{0}, shift_(6), TPinfoPrintout_(TPinfoPrintout), oddWeightsTxtFile_(oddWeightsTxtFile) {}
+EcalFenixOddAmplitudeFilter::EcalFenixOddAmplitudeFilter(bool TPinfoPrintout) 
+    : inputsAlreadyIn_(0), stripid_{0}, shift_(6), TPinfoPrintout_(TPinfoPrintout) {}
 
 
 EcalFenixOddAmplitudeFilter::~EcalFenixOddAmplitudeFilter() {}
@@ -108,40 +109,33 @@ void EcalFenixOddAmplitudeFilter::process() {
 }
 
 void EcalFenixOddAmplitudeFilter::setParameters(uint32_t raw,
-                                             const EcalTPGWeightIdMap *ecaltpgWeightMap,
-                                             const EcalTPGWeightGroup *ecaltpgWeightGroup) {
-  stripid_ = raw;    // by RK  
-
-  // Want to set Odd weights here 
-  // Can see from header files that even amplitude weights come from CondFormats --> conditions database?   
-  // For initial testing will load odd weights from text file 
-
+                                             const EcalTPGOddWeightIdMap *ecaltpgOddWeightMap,
+                                             const EcalTPGOddWeightGroup *ecaltpgOddWeightGroup) {
+  
+  stripid_ = raw;    // by RK                                            
   uint32_t params_[5];
-  const EcalTPGGroups::EcalTPGGroupsMap &groupmap = ecaltpgWeightGroup->getMap();
+  const EcalTPGGroups::EcalTPGGroupsMap &groupmap = ecaltpgOddWeightGroup->getMap();
   EcalTPGGroups::EcalTPGGroupsMapItr it = groupmap.find(raw);
   if (it != groupmap.end()) {
     uint32_t weightid = (*it).second;
-    const EcalTPGWeightIdMap::EcalTPGWeightMap &weightmap = ecaltpgWeightMap->getMap();
-    EcalTPGWeightIdMap::EcalTPGWeightMapItr itw = weightmap.find(weightid);
+    const EcalTPGOddWeightIdMap::EcalTPGWeightMap &weightmap = ecaltpgOddWeightMap->getMap();
+    EcalTPGOddWeightIdMap::EcalTPGWeightMapItr itw = weightmap.find(weightid);
     (*itw).second.getValues(params_[0], params_[1], params_[2], params_[3], params_[4]);
 
     // we have to transform negative coded in 7 bits into negative coded in 32
     // bits maybe this should go into the getValue method??
     // std::cout << "peak flag settings" << std::endl;
 
-    // for (int i = 0; i < 5; ++i) {
-    //   weights_[i] = (params_[i] & 0x40) ? (int)(params_[i] | 0xffffffc0) : (int)(params_[i]);
+    for (int i = 0; i < 5; ++i) {
+      weights_[i] = (params_[i] & 0x40) ? (int)(params_[i] | 0xffffffc0) : (int)(params_[i]);
 
-    //   // Construct the peakFlag for sFGVB processing
-    //   // peakFlag_[i] = ((params_[i] & 0x80) > 0x0) ? 1 : 0;
-    //   // std::cout << " " << params_[i] << std::endl;
-    //   // std::cout << " " << peakFlag_[i] << std::endl;
-    // }
-
-    // Setting Odd Weights via input text file here 
-    std::fstream oddWeightsLine(oddWeightsTxtFile_, std::ios_base::in);
-    oddWeightsLine >> weights_[0] >> weights_[1] >> weights_[2] >> weights_[3] >> weights_[4];  
-
+      // Construct the peakFlag for sFGVB processing
+      // peakFlag_[i] = ((params_[i] & 0x80) > 0x0) ? 1 : 0;
+      // std::cout << " " << params_[i] << std::endl;
+      // std::cout << " " << peakFlag_[i] << std::endl;
+    }
+    // std::cout << std::endl;
   } else
     edm::LogWarning("EcalTPG") << " could not find EcalTPGGroupsMap entry for " << raw;
+
 }
