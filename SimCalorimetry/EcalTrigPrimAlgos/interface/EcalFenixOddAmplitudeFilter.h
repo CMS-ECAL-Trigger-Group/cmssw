@@ -22,12 +22,11 @@ private:
   int inputsAlreadyIn_;
   uint32_t stripid_; // by RK 
   int buffer_[5];
-  int fgvbBuffer_[5];
   int weights_[5];
   int shift_;
   bool debug_; 
   bool TPinfoPrintout_; 
-  int setInput(int input, int fgvb);
+  int setInput(int input);
   void process();
 
   int processedOutput_;
@@ -38,9 +37,7 @@ public:
   EcalFenixOddAmplitudeFilter(bool TPinfoPrintout);
   virtual ~EcalFenixOddAmplitudeFilter();
   virtual void process(std::vector<int> &addout,
-                       std::vector<int> &output,
-                       std::vector<int> &fgvbIn,
-                       std::vector<int> &fgvbOut);
+                       std::vector<int> &output);
   void setParameters(uint32_t raw,
                      const EcalTPGOddWeightIdMap *ecaltpgOddWeightMap,
                      const EcalTPGOddWeightGroup *ecaltpgOddWeightGroup);

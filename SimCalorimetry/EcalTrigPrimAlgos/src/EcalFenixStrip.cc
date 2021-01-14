@@ -7,6 +7,7 @@
 
 #include <DataFormats/EcalDigi/interface/EcalTriggerPrimitiveSample.h>
 #include <string>
+#include <bitset>
 
 //-------------------------------------------------------------------------------------
 EcalFenixStrip::EcalFenixStrip(const edm::EventSetup &setup,
@@ -28,9 +29,7 @@ EcalFenixStrip::EcalFenixStrip(const edm::EventSetup &setup,
   fenixFormatterEB_ = new EcalFenixStripFormatEB();
   fenixFormatterEE_ = new EcalFenixStripFormatEE();
   fgvbEE_ = new EcalFenixStripFgvbEE();
-  mydebug_=false;  // DP ADDED
-  a = 10;
-
+  
   // prepare data storage for all events
   std::vector<int> v;
   v.resize(maxNrSamples);
@@ -38,22 +37,21 @@ EcalFenixStrip::EcalFenixStrip(const edm::EventSetup &setup,
   for (int i = 0; i < 5; i++)
     lin_out_[i] = v;
   add_out_.resize(maxNrSamples);
-  filt_out_.resize(maxNrSamples);
-  peak_out_.resize(maxNrSamples);
+
+  even_filt_out_.resize(maxNrSamples);
+  even_peak_out_.resize(maxNrSamples);
+  odd_filt_out_.resize(maxNrSamples); 
+  odd_peak_out_.resize(maxNrSamples);
+
   format_out_.resize(maxNrSamples);
   fgvb_out_.resize(maxNrSamples);
   fgvb_out_temp_.resize(maxNrSamples);
 
-  // prepare data storage for odd filter 
-  odd_lin_out_.resize(nbMaxXtals_);
-  for (int i = 0; i < 5; i++)
-    odd_lin_out_[i] = v;  
-  odd_add_out_.resize(maxNrSamples);
-  odd_filt_out_.resize(maxNrSamples); 
-  odd_peak_out_.resize(maxNrSamples);
-  // odd_format_out_.resize(maxNrSamples);
-  odd_fgvb_out_.resize(maxNrSamples);
-  odd_fgvb_out_temp_.resize(maxNrSamples);   
+  // Readout TP mode options
+  if (TPmode & 0x1) use_odd_filter_ = true;
+  if ( (TPmode > 1) & 0x1) use_odd_peak_finder_ = true;
+  if ( (TPmode > 2) & 0x1) disable_even_peak_finder_ = true;
+
 }
 
 //-------------------------------------------------------------------------------------
@@ -110,8 +108,7 @@ void EcalFenixStrip::process(const edm::EventSetup &setup, std::vector<EBDataFra
   process_part2_barrel(stripid, ecaltpgSlidW_,
                         ecaltpgFgStripEE_);  // part different for barrel/endcap
   out = format_out_; 
-  // if(OddFilter) out = odd_format_out_;
-  // else out = format_out_;  
+  
 }
 
 // void process(const edm::EventSetup &setup, std::vector<EEDataFrame> &samples, int nrXtals, std::vector<int> &out, bool OddFilter) {
@@ -144,6 +141,11 @@ void EcalFenixStrip::process(const edm::EventSetup &setup, std::vector<EEDataFra
   return;
 }
 
+/*
+* strip level processing - part1. 
+* The linearizer and adder are run only once. 
+* Then the even and odd filters and peak finder are run looking at the TPmode fla
+*/
 template <class T>
 void EcalFenixStrip::process_part1(int identif,
                     std::vector<T> &df,
@@ -156,10 +158,10 @@ void EcalFenixStrip::process_part1(int identif,
                     const EcalTPGOddWeightIdMap *ecaltpgOddWeightMap,
                     const EcalTPGOddWeightGroup *ecaltpgOddWeightGroup,
                     const EcalTPGCrystalStatus *ecaltpBadX) {
-  if (debug_)
-    std::cout << "\n\nEcalFenixStrip input is a vector of size: " << nrXtals << std::endl;
-  
-  if(debug_) std::cout << "Trigger Primitive mode: " << TPmode_ << std::endl; 
+  if (debug_)  {
+     std::cout << "\n\nEcalFenixStrip input is a vector of size: " << nrXtals << std::endl;
+     std::cout << "Trigger Primitive mode: " << std::bitset<9>(TPmode_).to_string() << std::endl;
+  } 
 
   // loop over crystals
   for (int cryst = 0; cryst < nrXtals; cryst++) {
@@ -189,16 +191,12 @@ void EcalFenixStrip::process_part1(int identif,
       }
       std::cout << std::endl;
     }
-
     std::cout << std::endl;
   }
 
   // Now call the sFGVB - this is common between EB and EE!
   getFGVB()->setParameters(identif, stripid, ecaltpgFgStripEE_);
   getFGVB()->process(lin_out_, fgvb_out_temp_);
-
-  // for odd filter 
-  
 
   if (debug_) {
     std::cout << "output of strip fgvb is a vector of size: " << std::dec << fgvb_out_temp_.size() << std::endl;
@@ -207,7 +205,6 @@ void EcalFenixStrip::process_part1(int identif,
     }
     std::cout << std::endl;
   }
-
   // call adder
   this->getAdder()->process(lin_out_, nrXtals, add_out_);  // add_out is of size SIZEMAX=maxNrSamples
 
@@ -220,103 +217,114 @@ void EcalFenixStrip::process_part1(int identif,
   }
   
   if (famos_) {
-    filt_out_[0] = add_out_[0];
-    peak_out_[0] = add_out_[0];
+    even_filt_out_[0] = add_out_[0];
+    even_peak_out_[0] = add_out_[0];
     return;
   } else {
 
     // This is where the amplitude filters are called 
-    // the TPmode flag will determine which are called. Even, Odd, or both. 
+    // the TPmode flag will determine which are called and if the peak finder is called.
+    // Call even amplitude filter 
+    this->getEvenFilter()->setParameters(stripid, ecaltpgWeightMap, ecaltpgWeightGroup);
+    this->getEvenFilter()->process(add_out_, even_filt_out_, fgvb_out_temp_, fgvb_out_);
 
-    if(TPmode_ == "Run2"){ // when calling both, add 'or' here for Run2 or both 
-
-      // Call even amplitude filter 
-      this->getFilter()->setParameters(stripid, ecaltpgWeightMap, ecaltpgWeightGroup);
-      this->getFilter()->process(add_out_, filt_out_, fgvb_out_temp_, fgvb_out_);
-
-      // Print out even filter ET and sfgvb values 
-      if(debug_){
-        std::cout << "output of EVEN filter is a vector of size: " << std::dec << filt_out_.size() << std::endl;
-        for (unsigned int ix = 0; ix < filt_out_.size(); ix++) {
-          std::cout << "Clock: " << ix << "  value : " << std::dec << filt_out_[ix] << std::endl;
-        }
-        std::cout << std::endl;    
-        std::cout << "output of EVEN sfgvb after filter is a vector of size: " << std::dec << fgvb_out_.size() << std::endl;
-        for (unsigned int ix = 0; ix < fgvb_out_.size(); ix++) {
-          std::cout << "Clock: " << ix << "  value : " << std::dec << fgvb_out_[ix] << std::endl;
-        }
-        std::cout << std::endl;            
+    // Print out even filter ET and sfgvb values 
+    if(debug_){
+      std::cout << "output of EVEN filter is a vector of size: " << std::dec << even_filt_out_.size() << std::endl;
+      for (unsigned int ix = 0; ix < even_filt_out_.size(); ix++) {
+        std::cout << "Clock: " << ix << "  value : " << std::dec << even_filt_out_[ix] << std::endl;
       }
-
-        // Call peak finder on even filter output 
-        this->getPeakFinder()->process(filt_out_, peak_out_);   
-
-        // Print out even filter peak finder values 
-        if(debug_){
-          std::cout << "output of EVEN peakfinder is a vector of size: " << peak_out_.size() << std::endl;
-          for (unsigned int ix = 0; ix < peak_out_.size(); ix++) {
-            std::cout << "Clock: " << ix << "  value : " << peak_out_[ix] << std::endl;
-          }
-          std::cout << std::endl;               
-        }      
-      
+      std::cout << std::endl;    
+      std::cout << "output of EVEN sfgvb after filter is a vector of size: " << std::dec << fgvb_out_.size() << std::endl;
+      for (unsigned int ix = 0; ix < fgvb_out_.size(); ix++) {
+        std::cout << "Clock: " << ix << "  value : " << std::dec << fgvb_out_[ix] << std::endl;
+      }
+      std::cout << std::endl;            
     }
 
-    else if(TPmode_ == "Odd"){
 
-      // loop over crystals
-      for (int cryst = 0; cryst < nrXtals; cryst++) {
-        
-        // if (debug_) {
-        //   std::cout << std::endl;
-        //   std::cout << "cryst= " << cryst << " EBDataFrame/EEDataFrame is: " << std::endl;
-        //   for (int i = 0; i < df[cryst].size(); i++) {
-        //     std::cout << " " << std::dec << df[cryst][i].adc();
-        //   }
-        //   std::cout << std::endl;
-        // }
-        // call linearizer
-        this->getLinearizer(cryst)->setParameters(df[cryst].id().rawId(), ecaltpPed, ecaltpLin, ecaltpBadX);
-        this->getLinearizer(cryst)->process(df[cryst], odd_lin_out_[cryst]);
-        
+    // Call peak finder on even filter output 
+    this->getPeakFinder()->process(even_filt_out_, even_peak_out_);   
+
+    // Print out even filter peak finder values 
+    if(debug_){
+      std::cout << "output of EVEN peakfinder is a vector of size: " << even_peak_out_.size() << std::endl;
+      for (unsigned int ix = 0; ix < even_peak_out_.size(); ix++) {
+        std::cout << "Clock: " << ix << "  value : " << even_peak_out_[ix] << std::endl;
       }
+      std::cout << std::endl;               
+    }     
 
-      getFGVB()->process(odd_lin_out_, odd_fgvb_out_temp_);
-      this->getAdder()->process(odd_lin_out_, nrXtals, odd_add_out_);  // for odd filter input 
-
-      // Call odd amplitude filter 
+    if (use_odd_filter_){
       this->getOddFilter()->setParameters(stripid, ecaltpgOddWeightMap, ecaltpgOddWeightGroup);
-      this->getOddFilter()->process(add_out_, odd_filt_out_, odd_fgvb_out_temp_, odd_fgvb_out_);      
-      // this->getOddFilter()->process(odd_add_out_, odd_filt_out_, odd_fgvb_out_temp_, odd_fgvb_out_);    
+      this->getOddFilter()->process(add_out_, odd_filt_out_);
 
-      // Print out odd filter ET and sfgvb values 
+      // Print out odd filter ET 
       if(debug_){
         std::cout << "output of ODD filter is a vector of size: " << std::dec << odd_filt_out_.size() << std::endl;
         for (unsigned int ix = 0; ix < odd_filt_out_.size(); ix++) {
           std::cout << "Clock: " << ix << "  value : " << std::dec << odd_filt_out_[ix] << std::endl;
         }
-        std::cout << std::endl; 
-
-        std::cout << "output of ODD sfgvb after filter is a vector of size: " << std::dec << odd_fgvb_out_.size() << std::endl;
-        for (unsigned int ix = 0; ix < odd_fgvb_out_.size(); ix++) {
-          std::cout << "Clock: " << ix << "  value : " << std::dec << odd_fgvb_out_[ix] << std::endl;
-        }
-        std::cout << std::endl;
-      }        
-
-      // Call peak finder on odd filter output 
-      this->getPeakFinder()->process(odd_filt_out_, odd_peak_out_);        
-        
-      // Print out odd filter peak finder values 
-      if (debug_) {
-        std::cout << "output of ODD peakfinder is a vector of size: " << odd_peak_out_.size() << std::endl;
-        for (unsigned int ix = 0; ix < odd_peak_out_.size(); ix++) {
-          std::cout << "Clock: " << ix << "  value : " << odd_peak_out_[ix] << std::endl;
-        }
-        std::cout << std::endl;        
+        std::cout << std::endl;            
       }
 
     }
+      
+    // else if(TPmode_ == "Odd"){
+
+    //   // loop over crystals
+    //   for (int cryst = 0; cryst < nrXtals; cryst++) {
+        
+    //     // if (debug_) {
+    //     //   std::cout << std::endl;
+    //     //   std::cout << "cryst= " << cryst << " EBDataFrame/EEDataFrame is: " << std::endl;
+    //     //   for (int i = 0; i < df[cryst].size(); i++) {
+    //     //     std::cout << " " << std::dec << df[cryst][i].adc();
+    //     //   }
+    //     //   std::cout << std::endl;
+    //     // }
+    //     // call linearizer
+    //     this->getLinearizer(cryst)->setParameters(df[cryst].id().rawId(), ecaltpPed, ecaltpLin, ecaltpBadX);
+    //     this->getLinearizer(cryst)->process(df[cryst], odd_lin_out_[cryst]);
+        
+    //   }
+
+    //   getFGVB()->process(odd_lin_out_, odd_fgvb_out_temp_);
+    //   this->getAdder()->process(odd_lin_out_, nrXtals, odd_add_out_);  // for odd filter input 
+
+    //   // Call odd amplitude filter 
+    //   this->getOddFilter()->setParameters(stripid, ecaltpgOddWeightMap, ecaltpgOddWeightGroup);
+    //   this->getOddFilter()->process(add_out_, odd_filt_out_, odd_fgvb_out_temp_, odd_fgvb_out_);      
+    //   // this->getOddFilter()->process(odd_add_out_, odd_filt_out_, odd_fgvb_out_temp_, odd_fgvb_out_);    
+
+    //   // Print out odd filter ET and sfgvb values 
+    //   if(debug_){
+    //     std::cout << "output of ODD filter is a vector of size: " << std::dec << odd_filt_out_.size() << std::endl;
+    //     for (unsigned int ix = 0; ix < odd_filt_out_.size(); ix++) {
+    //       std::cout << "Clock: " << ix << "  value : " << std::dec << odd_filt_out_[ix] << std::endl;
+    //     }
+    //     std::cout << std::endl; 
+
+    //     std::cout << "output of ODD sfgvb after filter is a vector of size: " << std::dec << odd_fgvb_out_.size() << std::endl;
+    //     for (unsigned int ix = 0; ix < odd_fgvb_out_.size(); ix++) {
+    //       std::cout << "Clock: " << ix << "  value : " << std::dec << odd_fgvb_out_[ix] << std::endl;
+    //     }
+    //     std::cout << std::endl;
+    //   }        
+
+    //   // Call peak finder on odd filter output 
+    //   this->getPeakFinder()->process(odd_filt_out_, odd_event_peak_out_);        
+        
+    //   // Print out odd filter peak finder values 
+    //   if (debug_) {
+    //     std::cout << "output of ODD peakfinder is a vector of size: " << odd_event_peak_out_.size() << std::endl;
+    //     for (unsigned int ix = 0; ix < odd_event_peak_out_.size(); ix++) {
+    //       std::cout << "Clock: " << ix << "  value : " << odd_event_peak_out_[ix] << std::endl;
+    //     }
+    //     std::cout << std::endl;        
+    //   }
+
+    // }
     return;
   }
 }
@@ -332,10 +340,10 @@ void EcalFenixStrip::process_part2_barrel(uint32_t stripid,
   // call formatter
   this->getFormatterEB()->setParameters(stripid, ecaltpgSlidW);
 
-  this->getFormatterEB()->process(fgvb_out_, peak_out_, filt_out_, format_out_);
+  this->getFormatterEB()->process(fgvb_out_, even_peak_out_, even_filt_out_, format_out_);
 
   // Duplicate for Odd filter 
-  // this->getFormatterEB()->process(odd_fgvb_out_, odd_peak_out_, odd_filt_out_, odd_format_out_);
+  // this->getFormatterEB()->process(odd_fgvb_out_, odd_event_peak_out_, odd_filt_out_, odd_format_out_);
 
   // this is a test:
   // if (debug_) {
@@ -359,10 +367,10 @@ void EcalFenixStrip::process_part2_endcap(uint32_t stripid,
 
   // call formatter
   this->getFormatterEE()->setParameters(stripid, ecaltpgSlidW, ecaltpgStripStatus);
-  this->getFormatterEE()->process(fgvb_out_, peak_out_, filt_out_, format_out_);
+  this->getFormatterEE()->process(fgvb_out_, even_peak_out_, even_filt_out_, format_out_);
 
   // Duplicate for odd filter 
-  // this->getFormatterEE()->process(odd_fgvb_out_, odd_peak_out_, odd_filt_out_, odd_format_out_);
+  // this->getFormatterEE()->process(odd_fgvb_out_, odd_event_peak_out_, odd_filt_out_, odd_format_out_);
 
   // this is a test:
   // if (debug_) {

@@ -13,35 +13,29 @@ EcalFenixOddAmplitudeFilter::EcalFenixOddAmplitudeFilter(bool TPinfoPrintout)
 
 EcalFenixOddAmplitudeFilter::~EcalFenixOddAmplitudeFilter() {}
 
-int EcalFenixOddAmplitudeFilter::setInput(int input, int fgvb) {
+int EcalFenixOddAmplitudeFilter::setInput(int input) {
   if (input > 0X3FFFF) {
     std::cout << "ERROR IN INPUT OF AMPLITUDE FILTER" << std::endl;
     return -1;
   }
   if (inputsAlreadyIn_ < 5) {
     buffer_[inputsAlreadyIn_] = input;
-    fgvbBuffer_[inputsAlreadyIn_] = fgvb;
     inputsAlreadyIn_++;
   } else {
     for (int i = 0; i < 4; i++) {
       buffer_[i] = buffer_[i + 1];
-      fgvbBuffer_[i] = fgvbBuffer_[i + 1];
     }
     buffer_[4] = input;
-    fgvbBuffer_[4] = fgvb;
   }
   return 1;
 }
 
 void EcalFenixOddAmplitudeFilter::process(std::vector<int> &addout,
-                                       std::vector<int> &output,
-                                       std::vector<int> &fgvbIn,
-                                       std::vector<int> &fgvbOut) {
+                                       std::vector<int> &output) {
   // test
   inputsAlreadyIn_ = 0;
   for (unsigned int i = 0; i < 5; i++) {
     buffer_[i] = 0;  // FIXME: 5
-    fgvbBuffer_[i] = 0;
   }
   // test end
 
@@ -51,19 +45,16 @@ void EcalFenixOddAmplitudeFilter::process(std::vector<int> &addout,
     if (i>=4){
       if(TPinfoPrintout_) std::cout<<i<<std::dec; 
     } 
-    setInput(addout[i], fgvbIn[i]);
+    setInput(addout[i]);
     process(); // This should probably be renamed to something meaningful and not the same as the very function it's being called in...
     output[i] = processedOutput_;
-    fgvbOut[i] = processedFgvbOutput_;
   }
   // shift the result by 1!
   for (unsigned int i = 0; i < (output.size()); i++) {
     if (i != output.size() - 1) {
       output[i] = output[i + 1];
-      fgvbOut[i] = fgvbOut[i + 1];
     } else {
       output[i] = 0;
-      fgvbOut[i] = 0;
     }
   }
   return;
@@ -72,19 +63,20 @@ void EcalFenixOddAmplitudeFilter::process(std::vector<int> &addout,
 void EcalFenixOddAmplitudeFilter::process() {
   // UB FIXME: 5
   processedOutput_ = 0;
-  processedFgvbOutput_ = 0;
   if (inputsAlreadyIn_ < 5)
     return;
   int output = 0;
-  int fgvbInt = 0;
 
   if(TPinfoPrintout_) std::cout<<" "<<stripid_;
   for (int i = 0; i < 5; i++) {
     output += (weights_[i] * buffer_[i]) >> shift_;
-    if ((fgvbBuffer_[i] == 1 && i == 3) || fgvbInt == 1) {
-      fgvbInt = 1;
-    }
   }
+
+  if (output < 0)
+    output = 0;
+  if (output > 0X3FFFF)
+    output = 0X3FFFF;
+  processedOutput_ = output;
 
   // by RK 
   if(TPinfoPrintout_){
@@ -94,18 +86,11 @@ void EcalFenixOddAmplitudeFilter::process() {
       std::cout<<" "<<weights_[i]/64.0<<std::dec;}
     for (int i = 0; i < 5; i++) {
       std::cout<<" "<<buffer_[i]<<std::dec;} // Digis 
+    std::cout << " --> output: " << output;
     std::cout << " ODD";
     std::cout<<std::endl;
       // -- by RK 
   }
-  
-  if (output < 0)
-    output = 0;
-  if (output > 0X3FFFF)
-    output = 0X3FFFF;
-  processedOutput_ = output;
-  processedFgvbOutput_ = fgvbInt;
-  //std::cout<<" output after full processing: "<<output<<std::endl; // by RK 
 }
 
 void EcalFenixOddAmplitudeFilter::setParameters(uint32_t raw,

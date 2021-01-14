@@ -48,7 +48,7 @@ void EcalFenixAmplitudeFilter::process(std::vector<int> &addout,
       if(TPinfoPrintout_) std::cout<<i<<std::dec; 
     } 
     setInput(addout[i], fgvbIn[i]);
-    process(); // This should probably be renamed to something meaningful and not the same as the very function it's being called in...
+    process();
     output[i] = processedOutput_;
     fgvbOut[i] = processedFgvbOutput_;
   }
@@ -82,6 +82,13 @@ void EcalFenixAmplitudeFilter::process() {
     }
   }
 
+  if (output < 0)
+    output = 0;
+  if (output > 0X3FFFF)
+    output = 0X3FFFF;
+  processedOutput_ = output;
+  processedFgvbOutput_ = fgvbInt;
+
   // by RK 
   if(TPinfoPrintout_){
     for (int i = 0; i < 5; i++) {
@@ -90,17 +97,13 @@ void EcalFenixAmplitudeFilter::process() {
       std::cout<<" "<<weights_[i]/64.0<<std::dec;}
     for (int i = 0; i < 5; i++) {
       std::cout<<" "<<buffer_[i]<<std::dec;} // digis 
+    std::cout << " --> output: " << output;
     std::cout << " EVEN";
     std::cout<<std::endl;
       // -- by RK 
   }
   
-  if (output < 0)
-    output = 0;
-  if (output > 0X3FFFF)
-    output = 0X3FFFF;
-  processedOutput_ = output;
-  processedFgvbOutput_ = fgvbInt;
+  
 }
 
 void EcalFenixAmplitudeFilter::setParameters(uint32_t raw,

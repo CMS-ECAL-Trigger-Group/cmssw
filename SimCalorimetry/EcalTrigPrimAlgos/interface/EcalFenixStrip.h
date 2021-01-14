@@ -66,20 +66,22 @@ private:
   // data formats for each event
   std::vector<std::vector<int>> lin_out_;
   std::vector<int> add_out_;
-  std::vector<int> filt_out_;
-  std::vector<int> peak_out_;
+
+  // Data formats for even filter. Up to the adder only 1 path, then splitted.
+  std::vector<int> even_filt_out_;
+  std::vector<int> even_peak_out_;
+
+  // Data formats for odd filter, as data path is duplicated for odd filter  
+  std::vector<int> odd_filt_out_; 
+  std::vector<int> odd_peak_out_;
+  // std::vector<int> odd_format_out_;
+
   std::vector<int> format_out_;
   std::vector<int> fgvb_out_;
   std::vector<int> fgvb_out_temp_;
 
-  // Data formats for odd filter, as data path is duplicated for odd filter 
-  std::vector<std::vector<int>> odd_lin_out_; // I'm not sure if this should be duplicated for the odd filter, but I think it's necessary for separate sFGVB vectors 
-  std::vector<int> odd_add_out_; // I'm not sure if this should be duplicated for the odd filter, but I think it's necessary for separate sFGVB vectors 
-  std::vector<int> odd_filt_out_; 
-  std::vector<int> odd_peak_out_;
-  // std::vector<int> odd_format_out_;
-  std::vector<int> odd_fgvb_out_;
-  std::vector<int> odd_fgvb_out_temp_; 
+  
+ 
 
   const EcalTPGPedestals *ecaltpPed_;
   const EcalTPGLinearizationConst *ecaltpLin_;
@@ -93,8 +95,11 @@ private:
   const EcalTPGStripStatus *ecaltpgStripStatus_;
 
   bool identif_;
-  bool mydebug_;   // DP ADDED
-  int a;
+  
+  bool use_odd_filter_ = false;
+  bool use_odd_peak_finder_ = false;
+  bool disable_even_peak_finder_ = false;
+
   
 public:
   void setPointers(const EcalTPGPedestals *ecaltpPed,
@@ -156,7 +161,7 @@ public:
 
   EcalFenixLinearizer *getLinearizer(int i) const { return linearizer_[i]; }
   EcalFenixEtStrip *getAdder() const { return adder_; }
-  EcalFenixAmplitudeFilter *getFilter() const { return amplitude_filter_; }
+  EcalFenixAmplitudeFilter *getEvenFilter() const { return amplitude_filter_; }
   EcalFenixOddAmplitudeFilter *getOddFilter() const { return oddAmplitude_filter_; }
   EcalFenixPeakFinder *getPeakFinder() const { return peak_finder_; }
 
