@@ -83,7 +83,7 @@ void EcalTrigPrimFunctionalAlgo::init(const edm::EventSetup &setup) {
   theMapping_ = ecalmapping.product();
 
   // create main sub algos
-  estrip_ = new EcalFenixStrip(setup, theMapping_, debug_, famos_, maxNrSamples_, nbMaxXtals_, oddWeightsTxtFile_, TPinfoPrintout_, TPmode_);
+  estrip_ = new EcalFenixStrip(setup, theMapping_, debug_, famos_, maxNrSamples_, nbMaxXtals_, TPinfoPrintout_, TPmode_);
   etcp_ = new EcalFenixTcp(setup, tcpFormat_, debug_, famos_, binOfMaximum_, maxNrSamples_, nbMaxStrips_);
 
   // initialise data structures
