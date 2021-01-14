@@ -38,9 +38,8 @@ public:
                  bool famos,
                  int maxNrSamples,
                  int nbMaxXtals,
-                 std::string oddWeightsTxtFile,
                  bool TPinfoPrintout,
-                 std::string TPmode);
+                 uint TPmode);
   virtual ~EcalFenixStrip();
 
 private:
@@ -49,7 +48,7 @@ private:
   bool famos_;
   int nbMaxXtals_; 
   bool TPinfoPrintout_;
-  std::string TPmode_;
+  uint TPmode_;
   std::vector<EcalFenixLinearizer *> linearizer_;
   EcalFenixAmplitudeFilter *amplitude_filter_;
   EcalFenixOddAmplitudeFilter *oddAmplitude_filter_;
@@ -86,6 +85,8 @@ private:
   const EcalTPGLinearizationConst *ecaltpLin_;
   const EcalTPGWeightIdMap *ecaltpgWeightMap_;
   const EcalTPGWeightGroup *ecaltpgWeightGroup_;
+  const EcalTPGOddWeightIdMap *ecaltpgOddWeightMap_;
+  const EcalTPGOddWeightGroup *ecaltpgOddWeightGroup_;
   const EcalTPGSlidingWindow *ecaltpgSlidW_;
   const EcalTPGFineGrainStripEE *ecaltpgFgStripEE_;
   const EcalTPGCrystalStatus *ecaltpgBadX_;
@@ -100,6 +101,8 @@ public:
                    const EcalTPGLinearizationConst *ecaltpLin,
                    const EcalTPGWeightIdMap *ecaltpgWeightMap,
                    const EcalTPGWeightGroup *ecaltpgWeightGroup,
+                   const EcalTPGOddWeightIdMap *ecaltpgOddWeightMap,
+                   const EcalTPGOddWeightGroup *ecaltpgOddWeightGroup,
                    const EcalTPGSlidingWindow *ecaltpgSlidW,
                    const EcalTPGFineGrainStripEE *ecaltpgFgStripEE,
                    const EcalTPGCrystalStatus *ecaltpgBadX,
@@ -108,6 +111,8 @@ public:
     ecaltpLin_ = ecaltpLin;
     ecaltpgWeightMap_ = ecaltpgWeightMap;
     ecaltpgWeightGroup_ = ecaltpgWeightGroup;
+    ecaltpgOddWeightMap_ = ecaltpgOddWeightMap;
+    ecaltpgOddWeightGroup_ = ecaltpgOddWeightGroup;
     ecaltpgSlidW_ = ecaltpgSlidW;
     ecaltpgFgStripEE_ = ecaltpgFgStripEE;
     ecaltpgBadX_ = ecaltpgBadX;

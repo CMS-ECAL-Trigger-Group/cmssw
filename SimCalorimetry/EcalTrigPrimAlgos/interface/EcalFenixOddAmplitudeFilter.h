@@ -5,8 +5,8 @@
 #include <vector>
 #include <string>
 
-class EcalTPGWeightIdMap;
-class EcalTPGWeightGroup;
+class EcalTPGOddWeightIdMap;
+class EcalTPGOddWeightGroup;
 
 /**
  \ class EcalFenixOddAmplitudeFilter

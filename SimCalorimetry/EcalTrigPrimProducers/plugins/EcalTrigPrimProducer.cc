@@ -42,6 +42,8 @@
 #include "CondFormats/DataRecord/interface/EcalTPGTowerStatusRcd.h"
 #include "CondFormats/DataRecord/interface/EcalTPGWeightGroupRcd.h"
 #include "CondFormats/DataRecord/interface/EcalTPGWeightIdMapRcd.h"
+#include "CondFormats/DataRecord/interface/EcalTPGOddWeightGroupRcd.h"
+#include "CondFormats/DataRecord/interface/EcalTPGOddWeightIdMapRcd.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGCrystalStatus.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGFineGrainEBGroup.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGFineGrainEBIdMap.h"
@@ -57,6 +59,8 @@
 #include "CondFormats/EcalObjects/interface/EcalTPGTowerStatus.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGWeightGroup.h"
 #include "CondFormats/EcalObjects/interface/EcalTPGWeightIdMap.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGOddWeightGroup.h"
+#include "CondFormats/EcalObjects/interface/EcalTPGOddWeightIdMap.h"
 
 #include "EcalTrigPrimProducer.h"
 #include "SimCalorimetry/EcalTrigPrimAlgos/interface/EcalTrigPrimFunctionalAlgo.h"
@@ -65,9 +69,8 @@ EcalTrigPrimProducer::EcalTrigPrimProducer(const edm::ParameterSet &iConfig)
     : barrelOnly_(iConfig.getParameter<bool>("BarrelOnly")),
       tcpFormat_(iConfig.getParameter<bool>("TcpOutput")),
       debug_(iConfig.getParameter<bool>("Debug")),
-      oddWeightsTxtFile_(iConfig.getParameter<std::string>("oddWeightsTxtFile")),
       TPinfoPrintout_(iConfig.getParameter<bool>("TPinfoPrintout")),
-      TPmode_(iConfig.getParameter<std::string>("TPmode")),
+      TPmode_(iConfig.getParameter<uint>("TPmode")),
       famos_(iConfig.getParameter<bool>("Famos")),
       tokenEB_(consumes<EBDigiCollection>(
           edm::InputTag(iConfig.getParameter<std::string>("Label"), iConfig.getParameter<std::string>("InstanceEB")))),
@@ -128,7 +131,7 @@ void EcalTrigPrimProducer::beginRun(edm::Run const &run, edm::EventSetup const &
   // ProcessHistory is guaranteed to be constant for an entire Run
   binOfMaximum_ = findBinOfMaximum(fillBinOfMaximumFromHistory_, binOfMaximum_, run.processHistory());
 
-  algo_.reset(new EcalTrigPrimFunctionalAlgo(setup, binOfMaximum_, tcpFormat_, barrelOnly_, debug_, famos_, oddWeightsTxtFile_, TPinfoPrintout_, TPmode_));
+  algo_.reset(new EcalTrigPrimFunctionalAlgo(setup, binOfMaximum_, tcpFormat_, barrelOnly_, debug_, famos_, TPinfoPrintout_, TPmode_));
 
   // get a first version of the records
   cacheID_ = this->getRecords(setup);
@@ -155,12 +158,22 @@ unsigned long long EcalTrigPrimProducer::getRecords(edm::EventSetup const &setup
   edm::ESHandle<EcalTPGSlidingWindow> theEcalTPGSlidingWindow_handle;
   setup.get<EcalTPGSlidingWindowRcd>().get(theEcalTPGSlidingWindow_handle);
   const EcalTPGSlidingWindow *ecaltpgSlidW = theEcalTPGSlidingWindow_handle.product();
+  // Even weights
   edm::ESHandle<EcalTPGWeightIdMap> theEcalTPGWEightIdMap_handle;
   setup.get<EcalTPGWeightIdMapRcd>().get(theEcalTPGWEightIdMap_handle);
   const EcalTPGWeightIdMap *ecaltpgWeightMap = theEcalTPGWEightIdMap_handle.product();
   edm::ESHandle<EcalTPGWeightGroup> theEcalTPGWEightGroup_handle;
   setup.get<EcalTPGWeightGroupRcd>().get(theEcalTPGWEightGroup_handle);
   const EcalTPGWeightGroup *ecaltpgWeightGroup = theEcalTPGWEightGroup_handle.product();
+  // Odd weights
+  edm::ESHandle<EcalTPGOddWeightIdMap> theEcalTPGOddWEightIdMap_handle;
+  setup.get<EcalTPGOddWeightIdMapRcd>().get(theEcalTPGOddWEightIdMap_handle);
+  const EcalTPGOddWeightIdMap *ecaltpgOddWeightMap = theEcalTPGOddWEightIdMap_handle.product();
+  edm::ESHandle<EcalTPGOddWeightGroup> theEcalTPGOddWEightGroup_handle;
+  setup.get<EcalTPGOddWeightGroupRcd>().get(theEcalTPGOddWEightGroup_handle);
+  const EcalTPGOddWeightGroup *ecaltpgOddWeightGroup = theEcalTPGOddWEightGroup_handle.product();
+
+
   edm::ESHandle<EcalTPGFineGrainStripEE> theEcalTPGFineGrainStripEE_handle;
   setup.get<EcalTPGFineGrainStripEERcd>().get(theEcalTPGFineGrainStripEE_handle);
   const EcalTPGFineGrainStripEE *ecaltpgFgStripEE = theEcalTPGFineGrainStripEE_handle.product();
@@ -173,6 +186,8 @@ unsigned long long EcalTrigPrimProducer::getRecords(edm::EventSetup const &setup
                      ecaltpgSlidW,
                      ecaltpgWeightMap,
                      ecaltpgWeightGroup,
+                     ecaltpgOddWeightMap,
+                     ecaltpgOddWeightGroup,
                      ecaltpgFgStripEE,
                      ecaltpgBadX,
                      ecaltpgStripStatus);
@@ -327,8 +342,7 @@ void EcalTrigPrimProducer::fillDescriptions(edm::ConfigurationDescriptions &desc
   // The code before the existence of fillDescriptions did something special if
   // 'binOfMaximum' was missing. This replicates that behavior.
   desc.add<int>("binOfMaximum", -1)->setComment(kComment);
-  desc.add<std::string>("oddWeightsTxtFile",""); // Need this added in order to avoid throwing of exceptions when validating oddWeightsTxtFile. Validation will throw an exception if a parameter is in the configuration that is not in the description
   desc.add<bool>("TPinfoPrintout", false);
-  desc.add<std::string>("TPmode",""); // Need this added in order to avoid throwing of exceptions when validating TPmode flag. Validation will throw an exception if a parameter is in the configuration that is not in the description
+  desc.add<uint>("TPmode",0); // Need this added in order to avoid throwing of exceptions when validating TPmode flag. Validation will throw an exception if a parameter is in the configuration that is not in the description
   descriptions.addDefault(desc);
 }
