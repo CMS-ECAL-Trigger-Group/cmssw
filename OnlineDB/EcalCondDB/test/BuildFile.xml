@@ -6,6 +6,11 @@
   <flags NO_TESTRUN="1"/>
 </bin>
 
+<bin file="TestOddWeightConf_v1.cpp">
+  <flags NO_TESTRUN="1"/>
+</bin>
+
+
 <bin file="LaserSeqToDB.cpp">
   <flags NO_TESTRUN="1"/>
 </bin>

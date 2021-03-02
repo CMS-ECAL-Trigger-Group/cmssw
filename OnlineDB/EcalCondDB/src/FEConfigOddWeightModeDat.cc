@@ -44,7 +44,7 @@ void FEConfigOddWeightModeDat::prepareWrite() noexcept(false) {
     m_writeStmt = m_conn->createStatement();
     m_writeStmt->setSQL(
 			"INSERT INTO " + getTable() + " (wei2_conf_id, "
-        " enableEBOddFilter, enableEEOddFilter, enableEBOddPeakFinder,enableEEOddPeakFinder, disableEBEvenPeakFinder, DISABLEEEEVENPEAKFINDER, fenixEBStripOutput, fenixEBStripOutput, FenixEBStripInfoBit2, fenixEEStripInfobit2, EBfenixTcpOutput, EBfenixTCPInfobit1,EEFENIXTCPOUTPUT, EEFENIXTCPINFOBIT1 ,fenixpar15, fenixpar16, fenixpar17, fenixpar18  ) "
+        " enableEBOddFilter, enableEEOddFilter, enableEBOddPeakFinder,enableEEOddPeakFinder, disableEBEvenPeakFinder, DISABLEEEEVENPEAKFINDER, fenixEBStripOutput, fenixEEStripOutput, FenixEBStripInfoBit2, fenixEEStripInfobit2, EBfenixTcpOutput, EBfenixTCPInfobit1,EEFENIXTCPOUTPUT, EEFENIXTCPINFOBIT1 ,fenixpar15, fenixpar16, fenixpar17, fenixpar18  ) "
         "VALUES (:wei2_conf_id,  "
         " :w1, :w2, :w3, :w4, :w5, :w6, :w7, :w8, :w9, :w10, :w11, :w12, :w13, :w14, :w15 , :w16, :w17, :w18 )");
   } catch (SQLException& e) {
